@@ -41,6 +41,11 @@ async def create_url_pair(
             detail="Внутренняя ошибка при формировании сокращенного URL",
         )
 
+@app.get("/all", summary="Все сокращенные ссылки", status_code=status.HTTP_200_OK, response_model=List[URLPairResponseModel])
+async def get_all_url_pairs(url_service: UrlService) -> List[URLPairResponseModel]:
+    db_pairs = url_service.get_all_url_pairs_from_db()
+    pairs = [URLPairResponseModel(original_url=db_pair.original_url, short_code=db_pair.shortened_url_code) for db_pair in db_pairs]
+    return pairs
 
 @app.get(
     "/{code}",
@@ -51,6 +56,10 @@ async def redirect_from_short_code(code: str, url_service: UrlService) -> Redire
     """
     Ищет в базе оригинальный URL по сокращенному коду и делает ридерект на исходный ресурс
     """
+    if code == "all":
+        db_pairs = url_service.get_all_url_pairs_from_db()
+        pairs = [URLPairResponseModel(original_url=db_pair.original_url, short_code=db_pair.shortened_url_code) for db_pair in db_pairs]
+        return pairs
     try:
         original_url = url_service.get_original_url_from_short(code)
         return RedirectResponse(original_url, status_code=303)
@@ -72,9 +81,3 @@ async def delete_url_pair(original_url: URLShortenerRequestModel, url_service: U
         url_service.delete_url_pair_from_original_url(str(original_url.url))
     except URLNotFoundError:
         raise HTTPException(status_code=404, detail="URL не найден в базе")
-
-@app.options("/all", summary="Все сокращенные ссылки", status_code=status.HTTP_200_OK)
-async def get_all_url_pairs(url_service: UrlService) -> List[URLPairResponseModel]:
-    db_pairs = url_service.get_all_url_pairs_from_db()
-    pairs = [URLPairResponseModel(original_url=db_pair.original_url, short_code=db_pair.shortened_url_code) for db_pair in db_pairs]
-    return pairs

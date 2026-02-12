@@ -47,6 +47,6 @@ def test_endpoint_get_all_pairs(test_api_client: TestClient):
     _resp = test_api_client.post("/shorten", json={"url": "https://google.com"})
     assert _resp.status_code == 201
 
-    resp = test_api_client.options("/all")
+    resp = test_api_client.get("/all")
     assert resp.status_code == 200
     assert len(resp.json()) == 1
