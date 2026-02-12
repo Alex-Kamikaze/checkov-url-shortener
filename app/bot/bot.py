@@ -28,7 +28,7 @@ bot = Bot(token=app_settings.telegram_api_key)
 dp = Dispatcher(storage=MemoryStorage())
 
 
-@dp.message(CommandStart)
+@dp.message(CommandStart())
 async def start_command(msg: Message):
     await msg.answer("Привет! Для получения справки напиши команду /help")
 
@@ -38,13 +38,13 @@ async def help_message(msg: Message):
 
 
 @dp.message(Command("shorten"))
-async def start_generation(msg: Message, fsm: FSMContext):
-    await fsm.set_state(ShorteningUrlState.enters_url)
+async def start_generation(msg: Message, state: FSMContext):
+    await state.set_state(ShorteningUrlState.enters_url)
     await msg.answer("Введи сслылку для сокращения")
 
 
 @dp.message(ShorteningUrlState.enters_url)
-async def generate_shorten_url(message: Message, fsm: FSMContext):
+async def generate_shorten_url(message: Message, state: FSMContext):
     if not message.text:
         await message.answer("Ошибка: Отсутствует текст для генерации ссылки!")
         return
@@ -59,15 +59,17 @@ async def generate_shorten_url(message: Message, fsm: FSMContext):
     except URLAlreadyExistsError:
         await message.answer("Ошибка: Данный URL уже существует в базе! Для просмотра всех доступных URL воспользуйтесь командой /all")
     finally:
-        await fsm.clear()
+        await state.clear()
 
-@dp.message(Command("help"))
+@dp.message(Command("all"))
 async def all_url_pairs(message: Message):
     url_service = URLService(repository=Repository(app_settings.db_name))
     pairs = url_service.get_all_url_pairs_from_db()
     result = str()
     for pair in pairs:
         result += f"Оригинал: {pair.original_url} -> {app_settings.site_host}/{pair.shortened_url_code}<br>"
+
+    await message.answer(result)
 
 async def run_bot():
     await dp.start_polling(bot)
