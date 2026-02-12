@@ -1,20 +1,22 @@
 from typing import List
 from hashlib import sha384
 from base62 import encodebytes
+from dataclasses import dataclass
 
 from pydantic import ValidationError
 
 from app.data.db.models import URLPairModel
-from app.services.base_service import BaseService
 from app.exc.url_exceptions import IncorrectURLSuppliedError
+from app.data.repository.repository import Repository
 
+@dataclass
+class URLService():
+    repository: Repository
 
-class URLService(BaseService):
     def _create_short_url(self, origin_url: str) -> str:
         """
         Создает сокращенную ссылку из длинной
         ! Только для внутренного использования
-        * Покрыто тестами
 
         Args:
             original_url (str): Исходный URL
@@ -30,7 +32,7 @@ class URLService(BaseService):
         """
         Записывает в базу данных пару оригинальный/сокращенный URL
         ! Только для внутреннего использования
-        * Покрыто тестами
+
         Args:
             pair (URLPairModel): Пара для записи
 
@@ -43,7 +45,6 @@ class URLService(BaseService):
         """
         Фабрика для создания `URLPairModel` для дальнейшего использования в функции `__insert_url_pair_in_database`
         ! Только для внутреннего использования
-        * Покрыто тестами
 
         """
         short_url = self._create_short_url(origin_url)
@@ -53,7 +54,6 @@ class URLService(BaseService):
     def create_url_pair(self, origin_url: str) -> str:
         """
         Создает в базе пару оригинальный/сокращенный URL и возвращает сокращенный URL
-        * Покрыто тестами
 
         Args:
             original_url (str): Исходный URL для сокращения
@@ -71,7 +71,6 @@ class URLService(BaseService):
     def get_original_url_from_short(self, short_url: str) -> str:
         """
         Ищет в базе исходный URL по его сокращенной версии и возвращает его
-        * Покрыто тестами
 
         Args:
             short_url (str): Сокращенный URL
@@ -86,8 +85,7 @@ class URLService(BaseService):
 
     def delete_url_pair_from_original_url(self, origin_url: str):
         """
-        Удаляет из пары связку URL по оригинальному URL
-        * Покрыто тестами        
+        Удаляет из пары связку URL по оригинальному URL  
 
 
         Args:
