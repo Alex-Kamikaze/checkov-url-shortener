@@ -1,16 +1,16 @@
-from typing import List
-from hashlib import sha384
-from base62 import encodebytes
-from dataclasses import dataclass
 
-from pydantic import ValidationError
+from dataclasses import dataclass
+from hashlib import sha384
+from typing import List
+
+from base62 import encodebytes
 
 from app.data.db.models import URLPairModel
-from app.exc.url_exceptions import IncorrectURLSuppliedError
 from app.data.repository.repository import Repository
 
+
 @dataclass
-class URLService():
+class URLService:
     repository: Repository
 
     def _create_short_url(self, origin_url: str) -> str:
@@ -83,22 +83,23 @@ class URLService():
         """
         return self.repository.get_original_url_from_shortened(short_url)
 
-    def delete_url_pair_from_original_url(self, origin_url: str):
+    def delete_url_pair_from_shorten_url(self, short_url: str):
         """
-        Удаляет из пары связку URL по оригинальному URL  
+        Удаляет из пары связку URL по короткому URL
 
 
         Args:
-            origin_url (str): Оригинальный URL
+            shorten_url (str): Сокращенный URL
         Raises:
             `URLNotFoundError`: Если указанного URL нет в базе
-            `IncorrectURLSuppliedError`: Если в функцию предоставлен неверный URL
         """
-        try:
-            filtred_url = URLPairModel(original_url=origin_url, shortened_url_code="val")  # ty:ignore[invalid-argument-type]
-            self.repository.delete_url_pair(str(filtred_url.original_url))
-        except ValidationError:
-            raise IncorrectURLSuppliedError()
+        self.repository.delete_url_pair(short_url)
 
     def get_all_url_pairs_from_db(self) -> List[URLPairModel]:
+        """
+        Возвращает из базы данных все пары связанных URL
+
+        Returns:
+            List[URLPairModel]: Все пары связанных URL
+        """
         return self.repository.get_all_pairs()

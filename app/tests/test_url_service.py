@@ -64,16 +64,13 @@ def test_service_client_method_get_og_url_from_short(mock_url_service: URLServic
     with pytest.raises(URLNotFoundError):
         mock_url_service.get_original_url_from_short("https://ya.ru")
 
-def test_service_delete_url_pair_from_original(mock_url_service: URLService):
-    mock_url_service.create_url_pair("https://google.com")
+def test_url_service_delete_pair_with_shorten(mock_url_service: URLService):
+    short_url = mock_url_service.create_url_pair("https://google.com")
     with does_not_raise():
-        mock_url_service.delete_url_pair_from_original_url("https://google.com")
-
-    with pytest.raises(IncorrectURLSuppliedError):
-        mock_url_service.delete_url_pair_from_original_url("ya.ru")
-
+        mock_url_service.delete_url_pair_from_shorten_url(short_url)
+    
     with pytest.raises(URLNotFoundError):
-        mock_url_service.delete_url_pair_from_original_url("https://ya.ru")
+        mock_url_service.delete_url_pair_from_shorten_url("NON_EXIST")
 
 def test_service_give_all_pairs(mock_url_service: URLService):
     mock_url_service.create_url_pair("https://google.com")

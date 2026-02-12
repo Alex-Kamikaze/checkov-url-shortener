@@ -70,14 +70,14 @@ async def redirect_from_short_code(code: str, url_service: UrlService) -> Redire
         )
 
 
-@app.delete("/delete-pair", summary="Удаление сокращенной ссылки", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_url_pair(original_url: URLShortenerRequestModel, url_service: UrlService):
+@app.delete("/delete-pair/{shorten_url}", summary="Удаление сокращенной ссылки", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_url_pair(shorten_url: str, url_service: UrlService):
     """
     Удаляет из базы связку URL
     ### Здесь переиспользуется `URLShortenerRequestModel`, чтобы не дублировать код валидации URL от пользователя
     """
 
     try:
-        url_service.delete_url_pair_from_original_url(str(original_url.url))
+        url_service.delete_url_pair_from_shorten_url(shorten_url)
     except URLNotFoundError:
         raise HTTPException(status_code=404, detail="URL не найден в базе")

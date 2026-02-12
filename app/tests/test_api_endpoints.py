@@ -27,20 +27,12 @@ def test_endpoint_make_redirect(test_api_client: TestClient):
 def test_endpoint_delete_url_pair(test_api_client: TestClient):
     _resp = test_api_client.post("/shorten", json={"url": "https://google.com"})
     assert _resp.status_code == 201
+    short_code = _resp.json()["short_code"]
 
-    resp = test_api_client.request(
-        method="DELETE",
-        url="/delete-pair",
-        json={"url": "https://google.com"}
-    ) # Почему разработчики Starlette выпилили аргумент json из метода TestClient.delete()? Загадка...
-    assert resp.status_code == 204
+    resp = test_api_client.delete(f"/delete-pair/{short_code}")
 
 
-    resp = test_api_client.request(
-        method="DELETE",
-        url="/delete-pair",
-        json={"url": "https://ya.com"}
-    )
+    resp = test_api_client.delete("/delete-pair/NON_EXISTING_PAIR")
     assert resp.status_code == 404
 
 def test_endpoint_get_all_pairs(test_api_client: TestClient):

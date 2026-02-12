@@ -83,21 +83,20 @@ class Repository:
 
         return url[0]
 
-    def delete_url_pair(self, original_url: str):
+    def delete_url_pair(self, shorten_url: str):
         """
         Удаляет из базы связку URL
 
         Args:
-            original_url (str): Оригинальный URL для поиска на удаление
+            shorten_url (str): Сокращенный URL для поиска на удаление
 
         Raises:
             URLNotFoundError: Если URL не найден в базе
         """
-        self.cursor.execute("SELECT shortened_url FROM urls WHERE original_url = ?", (str(original_url), ))
-        url = self.cursor.fetchone()
-        if not url:
+        self.cursor.execute("DELETE FROM urls WHERE shortened_url = ?", (shorten_url, ))
+        if self.cursor.rowcount == 0:
             raise URLNotFoundError()
-        self.cursor.execute("DELETE FROM urls WHERE original_url = ?", (str(original_url),))
+        
         self.db.commit()
 
     def get_all_pairs(self) -> List[URLPairModel]:
