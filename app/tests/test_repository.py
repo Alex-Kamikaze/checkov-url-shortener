@@ -4,7 +4,6 @@ import pytest
 
 from app.data.db.models import URLPairModel
 from app.data.repository.repository import Repository
-from app.exc.db_exceptions import URLAlreadyExistsError
 
 
 def test_repository_insert_urlpair(mock_repository: Repository):

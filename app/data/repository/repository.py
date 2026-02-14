@@ -1,6 +1,6 @@
 import sqlite3
 from typing import List, Optional, Self
-from contextlib import AbstractContextManager
+from loguru import logger
 
 from app.data.db.models import URLPairModel
 from app.exc.db_exceptions import (
@@ -9,7 +9,7 @@ from app.exc.db_exceptions import (
 )
 
 
-class Repository(AbstractContextManager[Self]):
+class Repository():
     """
     Репозиторий для взаимодействия с базой данных
 
@@ -29,11 +29,16 @@ class Repository(AbstractContextManager[Self]):
         self.connection = None
 
     def __enter__(self) -> Self:
-        self.connection = sqlite3.connect(self.conn_str, check_same_thread=False)
-        return self
+        try:
+            self.connection = sqlite3.connect(self.conn_str, check_same_thread=False)
+            logger.info(f"Created a new connection with database {self.conn_str}")
+            return self
+        except sqlite3.OperationalError as exc:
+            logger.error(f"Error occured while working with DB: {str(exc)}")
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         if self.connection:
+            logger.info(f"Closing connection with database {self.conn_str}")
             self.connection.close()
 
     def initialize_database(self):
@@ -81,6 +86,7 @@ class Repository(AbstractContextManager[Self]):
                     db.commit()
 
                 except sqlite3.IntegrityError:
+                    logger.info(f"Found existing URL in DB: {pair.original_url}, retreiving its short_code instead of creating")
                     db.rollback()
                     cursor.execute(
                         "SELECT shortened_url FROM urls WHERE original_url = ?",
@@ -160,3 +166,5 @@ class Repository(AbstractContextManager[Self]):
                     URLPairModel(original_url=pair[1], shortened_url_code=pair[2])
                     for pair in urls
                 ]
+        else:
+            raise ConnectionNotEstablishedError()

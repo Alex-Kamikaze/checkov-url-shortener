@@ -4,6 +4,7 @@ from hashlib import sha384
 from typing import List, Optional
 
 from base62 import encodebytes
+from loguru import logger
 
 from app.data.db.models import URLPairModel
 from app.data.repository.repository import Repository
@@ -66,6 +67,10 @@ class URLService:
         """
         pair = self._initialize_url_pair_model(origin_url)
         code_from_db = self._insert_url_pair_in_database(pair)
+        if code_from_db is None:
+            logger.info(f"New pair created in database: {pair.original_url} -> {pair.shortened_url_code}")
+        else:
+            logger.info(f"Using existing code for {pair.original_url} -> {pair.shortened_url_code}")
         return code_from_db or pair.shortened_url_code # Либо уже существуюший сокращенный код, либо новый созданный
 
     def get_original_url_from_short(self, short_url: str) -> str:

@@ -48,10 +48,6 @@ async def redirect_from_short_code(code: str, url_service: UrlService) -> Redire
     """
     Ищет в базе оригинальный URL по сокращенному коду и делает ридерект на исходный ресурс
     """
-    if code == "all":
-        db_pairs = url_service.get_all_url_pairs_from_db()
-        pairs = [URLPairResponseModel(original_url=db_pair.original_url, short_code=db_pair.shortened_url_code) for db_pair in db_pairs]
-        return pairs
     try:
         original_url = url_service.get_original_url_from_short(code)
         return RedirectResponse(original_url, status_code=303)

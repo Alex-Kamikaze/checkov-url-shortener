@@ -7,6 +7,7 @@ from pydantic import Field, field_validator, PositiveInt
 class ApplicationSettings(BaseSettings):
     db_name: str = Field(description="Название базы для подключения")
     port: PositiveInt = Field(description="Порт для работы API")
+    host: str = Field(description="Хост, на котором запускается приложение")
     telegram_api_key: Optional[str] = Field(description="Ключ для работы бота сократителя ссылок")
     api_link: Optional[str] = Field(description="API, куда надо отправлять запрос на сокращение ссылки (по логике, это наш APi :) ")
     model_config = SettingsConfigDict(case_sensitive=False, env_file=".env")

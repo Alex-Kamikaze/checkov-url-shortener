@@ -10,6 +10,7 @@ from aiogram.types import Message
 from aiogram.enums import ParseMode
 
 import requests
+from loguru import logger
 
 from app.api.schemas.url_schema import URLShortenerRequestModel
 from app.exc.bot_exceptions import (
@@ -22,9 +23,11 @@ from app.settings import app_settings
 from .states import ShorteningUrlState
 
 if not app_settings.telegram_api_key:
+    logger.error("Error! Telegram API Key Not Provided!")
     raise TelegramAPIKeyNotProvidedError()
 
 if not app_settings.api_link:
+    logger.error("Error! API Host not provided!")
     raise NoSiteHostProvidedError()
 
 bot = Bot(token=app_settings.telegram_api_key)
@@ -57,9 +60,8 @@ async def generate_shorten_url(message: Message, state: FSMContext):
         url = URLShortenerRequestModel(url=message.text)  # ty:ignore[invalid-argument-type]
         resp = requests.post(f"{app_settings.api_link}/shorten", json={"url": str(url.url)})
         if resp.status_code > 500:
+            logger.error(f"Server error: \nStatus Code: {resp.status_code}\nText: {resp.text}")
             await message.answer("Произошла ошибка на стороне сервера! Повторите попытку позже...")
-        
-        print()
         data: Dict[str, str] = json.loads(resp.text)
         short_code: str = data.get("short_code")
         await message.answer(f"Готово! Твоя сокращенная ссылка - {app_settings.api_link}/{short_code}")
@@ -75,6 +77,7 @@ async def all_url_pairs(message: Message):
     result = ""
     resp = requests.get(f"{app_settings.api_link}/all")
     if resp.status_code > 500:
+        logger.error(f"Server error: \nStatus Code: {resp.status_code}\nText: {resp.text}")
         await message.answer("Произошла ошибка на стороне сервера! Попробуйте позже...")
         return 
 
