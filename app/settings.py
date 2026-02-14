@@ -8,7 +8,7 @@ class ApplicationSettings(BaseSettings):
     db_name: str = Field(description="Название базы для подключения")
     port: PositiveInt = Field(description="Порт для работы API")
     telegram_api_key: Optional[str] = Field(description="Ключ для работы бота сократителя ссылок")
-    site_host: Optional[str] = Field(description="Хост сайта, с которым генерировать ссылку для редиректа (только если запущено в режиме телеграмм бота)")
+    api_link: Optional[str] = Field(description="API, куда надо отправлять запрос на сокращение ссылки (по логике, это наш APi :) ")
     model_config = SettingsConfigDict(case_sensitive=False, env_file=".env")
 
     @field_validator("db_name")
@@ -20,7 +20,7 @@ class ApplicationSettings(BaseSettings):
 
         return value
 
-    @field_validator("site_host", mode="before")
+    @field_validator("api_link", mode="before")
     @classmethod
     def valiate_site_host(cls, value: Optional[str]) -> Optional[str]:
         if value is not None:
