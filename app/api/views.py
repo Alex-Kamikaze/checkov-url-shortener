@@ -30,16 +30,8 @@ async def create_url_pair(
     """
     Создает в базе пару сокращенный URL - Оригинальный URL и возвращает код сокращенного URL
     """
-    try:
-        shortened_url = url_service.create_url_pair(str(original_url.url))
-        return ShortenedUrlCodeResponseModel(short_code=shortened_url)
-    except URLAlreadyExistsError:
-        raise HTTPException(status_code=400, detail="Повторение URL в базе!")
-    except ValidationError:
-        raise HTTPException(
-            status_code=500,
-            detail="Внутренняя ошибка при формировании сокращенного URL",
-        )
+    shortened_url = url_service.create_url_pair(str(original_url.url))
+    return ShortenedUrlCodeResponseModel(short_code=shortened_url)
 
 @app.get("/all", summary="Все сокращенные ссылки", status_code=status.HTTP_200_OK, response_model=List[URLPairResponseModel])
 async def get_all_url_pairs(url_service: UrlService) -> List[URLPairResponseModel]:

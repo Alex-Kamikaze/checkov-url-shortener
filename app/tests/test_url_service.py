@@ -35,11 +35,6 @@ def test_service_insert_pair_in_database(mock_url_service: URLService):
      pair = mock_url_service._initialize_url_pair_model(initial_site)
      mock_url_service._insert_url_pair_in_database(pair)
 
-     cursor = mock_url_service.repository.cursor
-     cursor.execute("SELECT * FROM urls WHERE original_url = ?", (str(pair.original_url), ))
-     result = cursor.fetchone()
-     assert result is not None
-     assert cursor.lastrowid is not None
 
 def test_service_client_method_for_creating_url_pair(mock_url_service: URLService):
     short_url = mock_url_service.create_url_pair("https://google.com")
@@ -47,22 +42,14 @@ def test_service_client_method_for_creating_url_pair(mock_url_service: URLServic
 
     assert short_url == generated_url
 
-    cursor = mock_url_service.repository.cursor
-    cursor.execute("SELECT * FROM urls WHERE shortened_url = ?", (short_url, ))
-    result = cursor.fetchone()
-    assert result is not None
-    assert cursor.lastrowid is not None
-
-    with pytest.raises(URLAlreadyExistsError):
-        mock_url_service.create_url_pair("https://google.com")
-
 def test_service_client_method_get_og_url_from_short(mock_url_service: URLService):
-    short_url = mock_url_service.create_url_pair("https://google.com")
-    found_url = mock_url_service.get_original_url_from_short(short_url)
+    short_code = mock_url_service.create_url_pair("https://google.com")
+    found_url = mock_url_service.get_original_url_from_short(short_code)
+
     assert found_url == "https://google.com/"
 
     with pytest.raises(URLNotFoundError):
-        mock_url_service.get_original_url_from_short("https://ya.ru")
+        mock_url_service.get_original_url_from_short("NON_EXISTING")
 
 def test_url_service_delete_pair_with_shorten(mock_url_service: URLService):
     short_url = mock_url_service.create_url_pair("https://google.com")

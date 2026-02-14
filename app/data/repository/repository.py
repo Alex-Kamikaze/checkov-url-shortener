@@ -1,11 +1,15 @@
 import sqlite3
-from typing import List
+from typing import List, Optional, Self
+from contextlib import AbstractContextManager
 
 from app.data.db.models import URLPairModel
-from app.exc.db_exceptions import URLAlreadyExistsError, URLNotFoundError
+from app.exc.db_exceptions import (
+    URLNotFoundError,
+    ConnectionNotEstablishedError,
+)
 
 
-class Repository:
+class Repository(AbstractContextManager[Self]):
     """
     Репозиторий для взаимодействия с базой данных
 
@@ -21,47 +25,71 @@ class Repository:
         Args:
             conn_str: Строка для подключения к базе
         """
+        self.conn_str = conn_str
+        self.connection = None
 
-        self.db: sqlite3.Connection = sqlite3.connect(conn_str, check_same_thread=False)
-        self.cursor = self.db.cursor()
+    def __enter__(self) -> Self:
+        self.connection = sqlite3.connect(self.conn_str, check_same_thread=False)
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if self.connection:
+            self.connection.close()
 
     def initialize_database(self):
         """
         Создает в базе необходимую таблицу для работы с парами URL
+
+        Raises:
+            `ConnectionNotEstablishedError`: Если не установлено соединение с базой
         """
+        if self.connection:
+            with self.connection as db:
+                cursor = db.cursor()
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS urls 
+                    (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        original_url TEXT UNIQUE,
+                        shortened_url VARCHAR(5) UNIQUE
+                    );
+                    """
+                )
+                db.commit()
+                cursor.close()
+        else:
+            raise ConnectionNotEstablishedError()
 
-        self.cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS urls 
-            (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                original_url TEXT UNIQUE,
-                shortened_url VARCHAR(5) UNIQUE
-            );
-            """
-        )
-
-        self.db.commit()
-
-    def insert_new_url_pair(self, pair: URLPairModel):
+    def insert_new_url_pair(self, pair: URLPairModel) -> Optional[str]:
         """
         Вставляет в базу данных новую пару связанных URL
 
         Args:
             pair (`URLPairModel`): Пара связанных URL
-
         Raises:
-            `URLAlreadyExistsError`: Если происходит попытка вставить не оригинальный URL
+            `ConnectionNotEstablishedError`: Если соединение с базой не установлено
         """
-        try:
-            self.cursor.execute(
-                "INSERT INTO urls (original_url, shortened_url) VALUES (?, ?)",
-                (str(pair.original_url), pair.shortened_url_code),
-            )
-            self.db.commit()
+        if self.connection:
+            with self.connection as db:
+                cursor = db.cursor()
+                try:
+                    cursor.execute(
+                        "INSERT INTO urls (original_url, shortened_url) VALUES (?, ?)",
+                        (str(pair.original_url), pair.shortened_url_code),
+                    )
+                    db.commit()
 
-        except sqlite3.IntegrityError:
-            raise URLAlreadyExistsError()
+                except sqlite3.IntegrityError:
+                    db.rollback()
+                    cursor.execute(
+                        "SELECT shortened_url FROM urls WHERE original_url = ?",
+                        (str(pair.original_url),),
+                    )
+                    return cursor.fetchone()[0]
+
+        else:
+            raise ConnectionNotEstablishedError()
 
     def get_original_url_from_shortened(self, short_url: str) -> str:
         """
@@ -73,15 +101,22 @@ class Repository:
         Returns:
             str: Оригинальный URL
         """
+        if self.connection:
+            with self.connection as db:
+                cursor = db.cursor()
 
-        self.cursor.execute(
-            "SELECT original_url FROM urls WHERE shortened_url = ?", (short_url,)
-        )
-        url = self.cursor.fetchone()
-        if url is None:
-            raise URLNotFoundError()
+                cursor.execute(
+                    "SELECT original_url FROM urls WHERE shortened_url = ?",
+                    (short_url,),
+                )
+                url = cursor.fetchone()
+                if url is None:
+                    raise URLNotFoundError()
 
-        return url[0]
+                return url[0]
+
+        else:
+            raise ConnectionNotEstablishedError()
 
     def delete_url_pair(self, shorten_url: str):
         """
@@ -93,17 +128,35 @@ class Repository:
         Raises:
             URLNotFoundError: Если URL не найден в базе
         """
-        self.cursor.execute("DELETE FROM urls WHERE shortened_url = ?", (shorten_url, ))
-        if self.cursor.rowcount == 0:
-            raise URLNotFoundError()
-        
-        self.db.commit()
+        if self.connection:
+            with self.connection as db:
+                cursor = db.cursor()
+                cursor.execute(
+                    "DELETE FROM urls WHERE shortened_url = ?", (shorten_url,)
+                )
+                if cursor.rowcount == 0:
+                    raise URLNotFoundError()
+                    
+                db.commit()
+        else:
+            ConnectionNotEstablishedError()
 
     def get_all_pairs(self) -> List[URLPairModel]:
-        self.cursor.execute("SELECT * FROM urls")
-        urls = self.cursor.fetchall()
-        return [URLPairModel(original_url=pair[1], shortened_url_code=pair[2]) for pair in urls]
+        """
+        Возвращает все пары URL из базы
 
-    def __del__(self):
-        self.cursor.close()
-        self.db.close()
+        Returns:
+            List[URLPairModel]: Пары URL из базы
+
+        Raises:
+            `ConnectionNotEstablishedError`: Если не установлено соединение с базой
+        """
+        if self.connection:
+            with self.connection as db:
+                cursor = db.cursor()
+                cursor.execute("SELECT * FROM urls")
+                urls = cursor.fetchall()
+                return [
+                    URLPairModel(original_url=pair[1], shortened_url_code=pair[2])
+                    for pair in urls
+                ]

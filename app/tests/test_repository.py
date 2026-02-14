@@ -12,8 +12,8 @@ def test_repository_insert_urlpair(mock_repository: Repository):
     with does_not_raise():
         mock_repository.insert_new_url_pair(pair)
 
-    with pytest.raises(URLAlreadyExistsError):
-        mock_repository.insert_new_url_pair(pair)
+        shortened_code = mock_repository.insert_new_url_pair(pair)
+        assert shortened_code == pair.shortened_url_code
 
 def test_repository_get_original_url_from_shortened(mock_repository: Repository):
      pair: URLPairModel = URLPairModel(original_url="https://google.com", shortened_url_code="tfg1")  # ty:ignore[invalid-argument-type]

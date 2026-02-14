@@ -14,13 +14,13 @@ def provide_database_name() -> str:
     return app_settings.db_name
 
 
-def provide_repository() -> Repository:
+def provide_repository():
     """
     Возвращает репозиторий с подключением к базе данных
     """
-    repo = Repository(provide_database_name())
-    repo.initialize_database()
-    return repo
+    with Repository(provide_database_name()) as repo:
+        repo.initialize_database()
+        yield repo
 
 
 def provide_url_service(repository: Annotated[Repository, Depends(provide_repository)]):

@@ -2,11 +2,9 @@ from fastapi.testclient import TestClient
 
 def test_endpoint_create_url_pair(test_api_client: TestClient):
     resp = test_api_client.post("/shorten", json={"url": "https://google.com"})
+    print(resp.json())
     assert resp.status_code == 201
     assert "short_code" in resp.json().keys()
-
-    error_resp = test_api_client.post("/shorten", json={"url": "https://google.com"})
-    assert error_resp.status_code == 400
 
     error_resp = test_api_client.post("/shorten", json={"url": "ya.ru"}) # Неправильный формат URL
     assert error_resp.status_code == 422
@@ -38,7 +36,9 @@ def test_endpoint_delete_url_pair(test_api_client: TestClient):
 def test_endpoint_get_all_pairs(test_api_client: TestClient):
     _resp = test_api_client.post("/shorten", json={"url": "https://google.com"})
     assert _resp.status_code == 201
+    _resp = test_api_client.post("/shorten", json={"url": "https://ya.com"})
+    assert _resp.status_code == 201
 
     resp = test_api_client.get("/all")
     assert resp.status_code == 200
-    assert len(resp.json()) == 1
+    assert len(resp.json()) == 2

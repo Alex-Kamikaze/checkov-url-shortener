@@ -1,7 +1,7 @@
 
 from dataclasses import dataclass
 from hashlib import sha384
-from typing import List
+from typing import List, Optional
 
 from base62 import encodebytes
 
@@ -28,7 +28,7 @@ class URLService:
         result: str = encodebytes(hash)
         return result[:10]
 
-    def _insert_url_pair_in_database(self, pair: URLPairModel):
+    def _insert_url_pair_in_database(self, pair: URLPairModel) -> Optional[str]:
         """
         Записывает в базу данных пару оригинальный/сокращенный URL
         ! Только для внутреннего использования
@@ -39,7 +39,7 @@ class URLService:
         Raises:
             URLAlreadyExistsError: Если оригинальный или сокращенный URL уже существует в базе
         """
-        self.repository.insert_new_url_pair(pair)
+        return self.repository.insert_new_url_pair(pair)
 
     def _initialize_url_pair_model(self, origin_url: str) -> URLPairModel:
         """
@@ -65,8 +65,8 @@ class URLService:
             URLAlreadyExistsError: Если оригинальный или сокращенный URL уже существует в базе
         """
         pair = self._initialize_url_pair_model(origin_url)
-        self._insert_url_pair_in_database(pair)
-        return pair.shortened_url_code
+        code_from_db = self._insert_url_pair_in_database(pair)
+        return code_from_db or pair.shortened_url_code # Либо уже существуюший сокращенный код, либо новый созданный
 
     def get_original_url_from_short(self, short_url: str) -> str:
         """

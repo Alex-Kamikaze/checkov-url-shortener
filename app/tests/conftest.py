@@ -13,9 +13,9 @@ from app.services.url_service import URLService
 
 @pytest.fixture
 def mock_repository():
-    repo = Repository(":memory:")
-    repo.initialize_database()
-    return repo
+    with Repository(":memory:") as repo:
+        repo.initialize_database()
+        yield repo
 
 
 @pytest.fixture
