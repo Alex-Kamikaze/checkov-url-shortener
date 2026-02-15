@@ -9,7 +9,7 @@ from app.exc.db_exceptions import (
 )
 
 
-class Repository():
+class Repository:
     """
     Репозиторий для взаимодействия с базой данных
 
@@ -28,17 +28,17 @@ class Repository():
         self.conn_str = conn_str
         self.connection = None
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> Self:  # ty:ignore[invalid-return-type]
         try:
             self.connection = sqlite3.connect(self.conn_str, check_same_thread=False)
-            logger.info(f"Created a new connection with database {self.conn_str}")
+            logger.debug(f"Created a new connection with database {self.conn_str}")
             return self
         except sqlite3.OperationalError as exc:
             logger.error(f"Error occured while working with DB: {str(exc)}")
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         if self.connection:
-            logger.info(f"Closing connection with database {self.conn_str}")
+            logger.debug(f"Closing connection with database {self.conn_str}")
             self.connection.close()
 
     def initialize_database(self):
@@ -86,7 +86,6 @@ class Repository():
                     db.commit()
 
                 except sqlite3.IntegrityError:
-                    logger.info(f"Found existing URL in DB: {pair.original_url}, retreiving its short_code instead of creating")
                     db.rollback()
                     cursor.execute(
                         "SELECT shortened_url FROM urls WHERE original_url = ?",
