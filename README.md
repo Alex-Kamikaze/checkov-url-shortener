@@ -22,13 +22,14 @@ port=8000
 5) Создайте .env файл со следующими настройками:
 
 ```
-db_name=test_sqlite.sqlite3
-port=8000
+db_name=test_sqlite.sqlite3 # Название базы данных для подключения
+port=8000 # 
+host=0.0.0.0
 telegram_api_key=ВАШ_КЛЮЧ_TELEGRAM
-site_host=https://example.com
+api_link=https://example.com
 ```
 
-(port и db_name могут быть на ваше усмотрение, site_host не должен заканчиваться на /, иначе будет ошибка при запуске)
+(port, db_name и host могут быть на ваше усмотрение, api_link - ссылка на запущенный API данного проекта, не должен заканчиваться на /, иначе будет ошибка при запуске)
 
 6) Запускаете бота
 ```
