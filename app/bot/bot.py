@@ -1,5 +1,5 @@
+from app.bot.services import BotService
 import json
-from typing import Dict
 from pydantic import ValidationError
 from aiogram import Bot
 from aiogram.dispatcher.dispatcher import Dispatcher
@@ -9,7 +9,6 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 
-import requests
 from loguru import logger
 
 from app.api.schemas.url_schema import URLShortenerRequestModel
@@ -17,7 +16,6 @@ from app.exc.bot_exceptions import (
     NoSiteHostProvidedError,
     TelegramAPIKeyNotProvidedError,
 )
-from app.data.db.models import URLPairModel
 from app.settings import app_settings
 
 from .states import ShorteningUrlState
@@ -58,12 +56,11 @@ async def generate_shorten_url(message: Message, state: FSMContext):
     
     try:
         url = URLShortenerRequestModel(url=message.text)  # ty:ignore[invalid-argument-type]
-        resp = requests.post(f"{app_settings.api_link}/shorten", json={"url": str(url.url)})
-        if resp.status_code > 500:
-            logger.error(f"Server error: \nStatus Code: {resp.status_code}\nText: {resp.text}")
-            await message.answer("Произошла ошибка на стороне сервера! Повторите попытку позже...")
-        data: Dict[str, str] = json.loads(resp.text)
-        short_code: str = data.get("short_code")
+        short_code = BotService.call_api_for_short_link(url)
+        if not short_code:
+            await message.answer("Произошла ошибка на стороне сервера! Попробуйте повторить попытку позже...")
+            return 
+        
         await message.answer(f"Готово! Твоя сокращенная ссылка - {app_settings.api_link}/{short_code}")
 
     except ValidationError:
@@ -75,14 +72,11 @@ async def generate_shorten_url(message: Message, state: FSMContext):
 @dp.message(Command("all"))
 async def all_url_pairs(message: Message):
     result = ""
-    resp = requests.get(f"{app_settings.api_link}/all")
-    if resp.status_code > 500:
-        logger.error(f"Server error: \nStatus Code: {resp.status_code}\nText: {resp.text}")
-        await message.answer("Произошла ошибка на стороне сервера! Попробуйте позже...")
-        return 
+    pairs = BotService.call_api_for_all_links()
+    if not pairs:
+        await message.answer("Произошла ошибка на сервере! Попробуйте повторить попытку позже...")
+        return
 
-    data = json.loads(resp.text)
-    pairs = [URLPairModel(original_url=pair.get("original_url"), shortened_url_code=pair.get("short_code")) for pair in data]
     for pair in pairs:
         result += f"Оригинал: {pair.original_url} -> {app_settings.api_link}/{pair.shortened_url_code} \n"
 
